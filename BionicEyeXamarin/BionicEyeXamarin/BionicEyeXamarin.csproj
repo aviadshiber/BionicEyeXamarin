@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="AudioB.png" />
+    <None Remove="Images\AudioBRecording.png" />
+    <None Remove="Images\topG.PNG" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Images\AudioB.png" />
+    <EmbeddedResource Include="Images\AudioBRecording.png" />
+    <EmbeddedResource Include="Images\topG.PNG" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonSubTypes" Version="1.5.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="RestSharp" Version="105.2.3" />
+    <PackageReference Include="Xam.Plugin.Geolocator" Version="4.5.0.6" />
+    <PackageReference Include="Xamarin.Forms" Version="3.4.0.1009999" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\AzureServices\AzureServices\AzureServices.csproj" />
+    <ProjectReference Include="..\..\..\GraphHooperExample\GraphHooperConnector\GraphHooperConnector.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="IO.Swagger">
+      <HintPath>..\..\..\..\source\repos\grapHooperTry1\GraphHooperConnector\bin\IO.Swagger.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
