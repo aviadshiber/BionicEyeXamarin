@@ -15,10 +15,10 @@ using AzureServices.Utils;
 namespace BionicEyeXamarin.Droid {
 	public class AudioRecorderService : IAudioRecorderService
 	{
-		int RECORDER_BPP = 16;
+        readonly int RECORDER_BPP = 16;
 		int RECORDER_SAMPLERATE;
-		ChannelIn RECORDER_CHANNELS = ChannelIn.Stereo;
-		Encoding RECORDER_AUDIO_ENCODING = Encoding.Pcm16bit;
+        readonly ChannelIn RECORDER_CHANNELS = ChannelIn.Stereo;
+        private readonly Encoding RECORDER_AUDIO_ENCODING = Encoding.Pcm16bit;
 
 		AudioRecord recorder;
 		int bufferSize;
