@@ -16,17 +16,15 @@ using BionicEyeXamarin.Helpers;
 
 namespace BionicEyeXamarin {
     public partial class MainPage : ContentPage {
-        private static readonly int NAVIGATION_SAMPLING = 2000;
+        private static readonly int NAVIGATION_SAMPLING = 10000;
         private static readonly string IMAGES_PATH = "BionicEyeXamarin.Images";
-        private static readonly string SPEECH_API_KEY = Secrets.SpeechApiKey;
-        private static readonly string GRAPHHOPPER_API_KEY = Secrets.GraphHopperApiKey;
-        private static readonly string GRAPHHOPPER_SERVER = Secrets.GraphHopperServerUrl;
-        
+
         IBingSpeechService bingSpeechService;
         IGraphHooperConnector graphHopperService;
         IGeolocator gpsService;
         volatile bool isRecording = false;
         volatile bool isNavigating = false;
+        CancellationTokenSource cancelToken;
 
 
         #region Controls View
@@ -79,7 +77,7 @@ namespace BionicEyeXamarin {
 
         private void InitGraphHopper() {
             try {
-                graphHopperService = new GraphHooperConnectorImpl(GRAPHHOPPER_API_KEY, GRAPHHOPPER_SERVER);
+                graphHopperService = new GraphHooperConnectorImpl(Secrets.GraphHopperApiKey, Secrets.GraphHopperServerUrl);
             } catch (Exception ex) {
                 DisplayAlert("Exception", ex.Message, "OK").Wait();
             }
@@ -87,7 +85,7 @@ namespace BionicEyeXamarin {
 
         private void InitSpeechService() {
             try {
-                bingSpeechService = new BingSpeechService(new AuthenticationService(SPEECH_API_KEY), Device.RuntimePlatform);
+                bingSpeechService = new BingSpeechService(new AuthenticationService(Secrets.SpeechApiKey), Device.RuntimePlatform);
             } catch (Exception ex) {
                 DisplayAlert("Exception", ex.Message, "OK").Wait();
             }
@@ -201,68 +199,114 @@ namespace BionicEyeXamarin {
 
                 Coordinate dest = await graphHopperService.getCoordiantesAsync(location);
                 bool shouldNavigate = await DisplayAlert($"Do you want to navigate to {location}?", $"(longitude:{dest.longitude},latitude:{dest.latitude})", "Yes", "No");
-                if (!isNavigating) {
+                
                     await Task.Run(async () => {
                         try {
-                            if (shouldNavigate) {                               
-                                await StartNavigationListner(dest);
+                            if (shouldNavigate) {
+                                //We should allow only one navigation at a time
+                                if (isNavigating)
+                                    StopNavigation();
+                                cancelToken = new CancellationTokenSource();
+                                await StartNavigationListner(dest, cancelToken.Token);
                             }
                         } catch (Exception ex) {
-                            await DisplayAlert("Location was not found", ex.Message, "OK, I will try again");
+                            await AlertOnUi("Location was not found", ex.Message, "OK, I will try again");
                         } finally {
                             isNavigating = false;
                             StopActivityIndicator();
                         }
                     });
-                }
+                
             } catch (Exception ex) {
                 await DisplayAlert("Location was not found", ex.Message, "OK, I will try again");
             }
 
         }
 
-        private async Task StartNavigationListner(Coordinate dest) {
-            isNavigating = true;
-            while (isNavigating) {
-                activityIndicator.IsRunning = true;
-                activityIndicator.Color = Color.Blue;
-                Coordinate src = await GetSourceCoordinate();
-                Debug.WriteLine("Your Coordinate:" + src);
-                //TODO: TAKE AZIMUTH AND REPLACE THE CONSTANT
-                var routeResponse = await graphHopperService.getRouthAsync(src, dest, 30);
-                StopActivityIndicator();
-                if (AreWeInDestenation(routeResponse)) {
-                    isNavigating = false;
-                    await DisplayAlert("Congratulations!", "You have reached your destenation!", "Cool,Thanks! :)");
-                    break;
-                }
-                ShowNextTurn(routeResponse);
-                Thread.Sleep(NAVIGATION_SAMPLING);
+        private void StopNavigation() {
+            if (cancelToken != null) {
+                cancelToken.Cancel();
+                isNavigating = false;
             }
         }
 
-        private bool AreWeInDestenation(RouteResponse routeResponse) {
+        private async Task StartNavigationListner(Coordinate dest, CancellationToken token) {
+            isNavigating = true;
+            while (isNavigating) {
+                if (token.IsCancellationRequested) {
+                    Debug.WriteLine("--------The last navigation request was cancelled--------------");
+                    break;
+                }
+                Device.BeginInvokeOnMainThread(() => {
+                    activityIndicator.IsRunning = true;
+                });
+                ChangeActivityIndicatorColor(Color.Blue);
+                Coordinate src;
+                try {
+                    src = await GetSourceCoordinate();
+
+                    Debug.WriteLine("Your Coordinate:" + src);
+                    //TODO: TAKE AZIMUTH AND REPLACE THE CONSTANT
+                    try {
+                        var routeResponse = await graphHopperService.getRouthAsync(src, dest, 30);
+
+                        StopActivityIndicator();
+                        if (DestenationReached(routeResponse)) {
+                            isNavigating = false;
+                            await AlertOnUi("Congratulations!", "You have reached your destenation!", "Cool,Thanks! :)");
+                            break;
+                        }
+                        ShowNextTurn(routeResponse);
+                    } catch (Exception ex) {
+                        await AlertOnUi("Cloud not navigate!", ex.StackTrace, "OK, I will report this");
+                    }
+                    //before we get to sleep we check for cancellation again
+                    if (token.IsCancellationRequested) {
+                        Debug.WriteLine("--------The last navigation request was cancelled--------------");
+                        break;
+                    }
+                    Thread.Sleep(NAVIGATION_SAMPLING);
+                }catch (Exception) {
+                    await AlertOnUi("GPS Failure!", "Make sure your GPS is active and there is a reception", "OK");
+                }
+            }
+        }
+
+        private async Task AlertOnUi(string title, string message, string cancel) {
+            await DisplayAlert(title, message, cancel);
+
+        }
+
+        private void ChangeActivityIndicatorColor(Color color) {
+            Device.BeginInvokeOnMainThread(() => {
+                activityIndicator.Color = color;
+            });
+        }
+
+        private bool DestenationReached(RouteResponse routeResponse) {
             if (routeResponse != null)
-                return routeResponse.Paths.Count == 0 || routeResponse.Paths[0].Distance < 1;
+                return (routeResponse.Paths.Count > 0 && routeResponse.Paths[0].Instructions.Count == 0) || routeResponse.Paths[0].Distance < 2;
             return false;
         }
 
         private void StopActivityIndicator() {
-            activityIndicator.IsRunning = false;
-            activityIndicator.Color = Color.Green;
+            Device.BeginInvokeOnMainThread(() => {
+                activityIndicator.IsRunning = false;
+            });
+            ChangeActivityIndicatorColor(Color.Green);
         }
 
         private void ShowNextTurn(RouteResponse routeResponse) {
             if (routeResponse != null) {
                 if (routeResponse.Paths.Count > 0) {
                     int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
-                    directionLabel.IsVisible = true;
-                    if (nextTurn < 0)
-                        directionLabel.Text = "Turn left";
+                    ChangeLabelVisiabilityOnUI(directionLabel, true);
+                    if (nextTurn < 0) ChangeLabelTextOnUI(directionLabel, "Turn left");
+
                     else if (nextTurn == 0)
-                        directionLabel.Text = $"Continue on street {routeResponse.Paths[0].Instructions[0].StreetName}";
+                        ChangeLabelTextOnUI(directionLabel, $"Continue on street {routeResponse.Paths[0].Instructions[0].StreetName}");
                     else if (nextTurn > 0)
-                        directionLabel.Text = "Turn right";
+                        ChangeLabelTextOnUI(directionLabel, "Turn right");
                     foreach (var instuction in routeResponse?.Paths[0].Instructions) {
                         Debug.WriteLine($"time:{ instuction.Time} , next step:{instuction.Text}),sign:{instuction.Sign}\n");
                     }
@@ -272,13 +316,29 @@ namespace BionicEyeXamarin {
 
         }
 
+        private void ChangeLabelVisiabilityOnUI(Label label, bool v) {
+            Device.BeginInvokeOnMainThread(() => { label.IsVisible = v; });
+        }
+
+        private void ChangeLabelTextOnUI(Label label, string v) {
+            Device.BeginInvokeOnMainThread(() => { label.Text = v; });
+        }
+
         private async Task<Coordinate> GetSourceCoordinate() {
-            var position = await gpsService.GetPositionAsync(TimeSpan.FromSeconds(10));
-            return new Coordinate(position.Latitude, position.Longitude);
+            Position position = null;
+            try {
+                position = await gpsService.GetPositionAsync(TimeSpan.FromSeconds(10));
+                return new Coordinate(position.Latitude, position.Longitude);
+            } catch (Exception ex) {
+                await AlertOnUi("GPS ERROR", ex.Message, ":(");
+                throw ex;
+            }
+
 
         }
 
         private string GetLocationFromText(string text) {
+            text = text.Replace(".", "");
             int index = text.IndexOf("to");//Locating place
             int locationIndex = index + 2;
             if (index > 0 && locationIndex < text.Length) {
