@@ -13,18 +13,23 @@ using Plugin.Geolocator.Abstractions;
 using IO.Swagger.Model;
 using System.Threading;
 using BionicEyeXamarin.Helpers;
+using BionicEyeXamarin.Services;
 
 namespace BionicEyeXamarin {
     public partial class MainPage : ContentPage {
         private static readonly int NAVIGATION_SAMPLING = 10000;
         private static readonly string IMAGES_PATH = "BionicEyeXamarin.Images";
-
+        private readonly int BLUETOOTH_TIMEOUT = 5;
         IBingSpeechService bingSpeechService;
         IGraphHooperConnector graphHopperService;
         IGeolocator gpsService;
-        volatile bool isRecording = false;
-        volatile bool isNavigating = false;
+        IBluetoothConnector bluetoothConnector;
+        volatile bool isRecording;
+        volatile bool isNavigating;
+        volatile bool isListeningToBluetooth;
+        volatile int currentAzimuth;
         CancellationTokenSource cancelToken;
+        private readonly object azimuthLock = new object();
 
 
         #region Controls View
@@ -64,11 +69,31 @@ namespace BionicEyeXamarin {
 
 
         public MainPage() {
+            isRecording = false;
+            isNavigating = false;
+            isListeningToBluetooth = false;
             InitializeComponent();
             CreateView();
             InitSpeechService();
             InitGraphHopper();
             InitGPS();
+            InitBluetooth();
+        }
+
+        private void InitBluetooth() {
+            bluetoothConnector = DependencyService.Get<IBluetoothConnector>();
+            Task.Run(async () => {
+                bool sucess = false;
+                int count = 0;
+                while (!sucess && count < BLUETOOTH_TIMEOUT) {
+                    sucess = await bluetoothConnector.ConnectAsync();
+                    await Task.Delay(1000);
+                    count++;
+                }
+                if (!sucess)
+                    await AlertOnUi("Can't reach Bluetooth", "Are you sure Bluetooth is on?, try restart the app", "OK");
+            });
+
         }
 
         private void InitGPS() {
@@ -137,7 +162,6 @@ namespace BionicEyeXamarin {
 
 
                     ((ImageButton)sender).Source = ImageSource.FromResource($"{IMAGES_PATH}.AudioBRecording.png");
-                    //IsProcessing = true;
                     Debug.WriteLine("Starting to record");
 
                 } else {
@@ -148,6 +172,13 @@ namespace BionicEyeXamarin {
 
                 isRecording = !isRecording;
                 if (!isRecording) {
+                    if (!bluetoothConnector.IsConnected) {
+                        await DisplayAlert("Bluetooth is off!", "Can't navigate without the azimuth, make sure bluetooth is turned on", "OK");
+                        return;
+                    }
+                    if (!isListeningToBluetooth) {
+                        await ListenToArduino();
+                    }
                     await RecognizeSpeechAsync();
 
                 } else {
@@ -168,9 +199,35 @@ namespace BionicEyeXamarin {
             } finally {
                 if (!isRecording) {
                     ((ImageButton)sender).Source = ImageSource.FromResource($"{IMAGES_PATH}.AudioB.png");
-                    //IsProcessing = false;
                 }
             }
+        }
+
+        private async Task ListenToArduino() {
+            isListeningToBluetooth = true;
+            await Task.Run(async () => {
+                while (true) {
+                    Thread.Sleep(500);
+
+                    string data = await bluetoothConnector.RecieveAsync();
+                    if (data != null) {
+                        if (data.Length > 3) {
+                            Console.WriteLine($"Data recived from arduino is invalid! {data}");
+                            continue;
+                        }
+                        lock (azimuthLock) {
+                            try {
+                                currentAzimuth = int.Parse(data);
+                            } catch (Exception) {
+                                Console.WriteLine($"Data recived from arduino is invalid! {data}");
+                                continue;
+                            }
+                        }
+
+                    }
+
+                }
+            });
         }
 
         private async Task RecognizeSpeechAsync() {
@@ -199,24 +256,24 @@ namespace BionicEyeXamarin {
 
                 Coordinate dest = await graphHopperService.getCoordiantesAsync(location);
                 bool shouldNavigate = await DisplayAlert($"Do you want to navigate to {location}?", $"(longitude:{dest.longitude},latitude:{dest.latitude})", "Yes", "No");
-                
-                    await Task.Run(async () => {
-                        try {
-                            if (shouldNavigate) {
-                                //We should allow only one navigation at a time
-                                if (isNavigating)
-                                    StopNavigation();
-                                cancelToken = new CancellationTokenSource();
-                                await StartNavigationListner(dest, cancelToken.Token);
-                            }
-                        } catch (Exception ex) {
-                            await AlertOnUi("Location was not found", ex.Message, "OK, I will try again");
-                        } finally {
-                            isNavigating = false;
-                            StopActivityIndicator();
+
+                await Task.Run(async () => {
+                    try {
+                        if (shouldNavigate) {
+                            //We should allow only one navigation at a time
+                            if (isNavigating)
+                                StopNavigation();
+                            cancelToken = new CancellationTokenSource();
+                            await StartNavigationListner(dest, cancelToken.Token);
                         }
-                    });
-                
+                    } catch (Exception ex) {
+                        await AlertOnUi("Location was not found", ex.Message, "OK, I will try again");
+                    } finally {
+                        isNavigating = false;
+                        StopActivityIndicator();
+                    }
+                });
+
             } catch (Exception ex) {
                 await DisplayAlert("Location was not found", ex.Message, "OK, I will try again");
             }
@@ -248,7 +305,7 @@ namespace BionicEyeXamarin {
                     Debug.WriteLine("Your Coordinate:" + src);
                     //TODO: TAKE AZIMUTH AND REPLACE THE CONSTANT
                     try {
-                        var routeResponse = await graphHopperService.getRouthAsync(src, dest, 30);
+                        var routeResponse = await graphHopperService.getRouthAsync(src, dest, GetAzimuth());
 
                         StopActivityIndicator();
                         if (DestenationReached(routeResponse)) {
@@ -256,6 +313,7 @@ namespace BionicEyeXamarin {
                             await AlertOnUi("Congratulations!", "You have reached your destenation!", "Cool,Thanks! :)");
                             break;
                         }
+                        await SendDataToArduino(routeResponse);
                         ShowNextTurn(routeResponse);
                     } catch (Exception ex) {
                         await AlertOnUi("Cloud not navigate!", ex.StackTrace, "OK, I will report this");
@@ -266,10 +324,31 @@ namespace BionicEyeXamarin {
                         break;
                     }
                     Thread.Sleep(NAVIGATION_SAMPLING);
-                }catch (Exception) {
+                } catch (Exception) {
                     await AlertOnUi("GPS Failure!", "Make sure your GPS is active and there is a reception", "OK");
                 }
             }
+        }
+
+        private async Task SendDataToArduino(RouteResponse routeResponse) {
+
+            if (routeResponse != null && routeResponse.Paths.Count > 0) {
+                int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
+                if (nextTurn != null) {
+                    nextTurn += 3;
+                    await bluetoothConnector.SendAsync(nextTurn.ToString());
+                }
+            }
+
+        }
+
+        private int GetAzimuth() {
+            int azimuth;
+            lock (azimuthLock) {
+                azimuth = currentAzimuth;
+            }
+
+            return azimuth;
         }
 
         private async Task AlertOnUi(string title, string message, string cancel) {
@@ -301,6 +380,7 @@ namespace BionicEyeXamarin {
                 if (routeResponse.Paths.Count > 0) {
                     int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
                     ChangeLabelVisiabilityOnUI(directionLabel, true);
+
                     if (nextTurn < 0) ChangeLabelTextOnUI(directionLabel, "Turn left");
 
                     else if (nextTurn == 0)
