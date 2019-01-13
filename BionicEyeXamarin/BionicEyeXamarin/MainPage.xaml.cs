@@ -127,8 +127,8 @@ namespace BionicEyeXamarin {
 
 
             Image logo = new Image {
-                Source = ImageSource.FromResource($"{IMAGES_PATH}.topG.PNG"),
-                Scale = 2.8,
+                Source = ImageSource.FromResource($"{IMAGES_PATH}.logo.png"),
+                //Scale = 0.5,
                 HorizontalOptions = LayoutOptions.Center,
             };
 
@@ -335,7 +335,7 @@ namespace BionicEyeXamarin {
             if (routeResponse != null && routeResponse.Paths.Count > 0) {
                 int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
                 if (nextTurn != null) {
-                    nextTurn += 3;
+                    nextTurn += 3; //to avoid nagative values (single char)
                     await bluetoothConnector.SendAsync(nextTurn.ToString());
                 }
             }

@@ -12,13 +12,13 @@
   <ItemGroup>
     <None Remove="AudioB.png" />
     <None Remove="Images\AudioBRecording.png" />
-    <None Remove="Images\topG.PNG" />
+    <None Remove="Images\logo.png" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Images\AudioB.png" />
     <EmbeddedResource Include="Images\AudioBRecording.png" />
-    <EmbeddedResource Include="Images\topG.PNG" />
+    <EmbeddedResource Include="Images\logo.png" />
   </ItemGroup>
 
   <ItemGroup>
