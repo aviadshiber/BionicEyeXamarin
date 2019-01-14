@@ -14,6 +14,7 @@ using IO.Swagger.Model;
 using System.Threading;
 using BionicEyeXamarin.Helpers;
 using BionicEyeXamarin.Services;
+using System.IO;
 
 namespace BionicEyeXamarin {
     public partial class MainPage : ContentPage {
@@ -88,9 +89,9 @@ namespace BionicEyeXamarin {
                     await Task.Delay(1000);
                     count++;
                 }
-                if (!sucess)
+                if (!sucess) {
                     await AlertOnUi("Can't reach Bluetooth", "Are you sure Bluetooth is on?, try restart the app", "OK");
-                else {
+                } else { //As soon as we are connected we need to pull from the values
                     await ListenToArduino();
                 }
             });
@@ -173,13 +174,7 @@ namespace BionicEyeXamarin {
 
                 isRecording = !isRecording;
                 if (!isRecording) {
-                    if (!bluetoothConnector.IsConnected) {
-                        await DisplayAlert("Bluetooth is off!", "Can't navigate without the azimuth, make sure bluetooth is turned on", "OK");
-                        return;
-                    }
-                   
                     await RecognizeSpeechAsync();
-
                 } else {
                     //we stop recording after 4 sec
                     await WaitAndExecute(4000, async () => {
@@ -194,7 +189,7 @@ namespace BionicEyeXamarin {
                   );
                 }
             } catch (Exception ex) {
-                await DisplayAlert("Exception", ex.Message, "Ok");
+                await DisplayAlert("Error", ex.Message, "Ok");
             } finally {
                 if (!isRecording) {
                     ((ImageButton)sender).Source = ImageSource.FromResource($"{IMAGES_PATH}.AudioB.png");
@@ -239,6 +234,9 @@ namespace BionicEyeXamarin {
 
             if (!string.IsNullOrWhiteSpace(speechResult.DisplayText)) {
                 if (speechResult.RecognitionStatus == "Success") {
+                    if (!bluetoothConnector.IsConnected) {
+                        throw new IOException("Bluetooth is off!\nCan't navigate without the azimuth, make sure bluetooth is turned on"); 
+                    }
                     string formatedResult = char.ToUpper(speechResult.DisplayText[0]) + speechResult.DisplayText.Substring(1);
                     string location = GetLocationFromText(formatedResult);
                     speechLabel.Text = "Navigating to:" + location;
