@@ -26,7 +26,6 @@ namespace BionicEyeXamarin {
         IBluetoothConnector bluetoothConnector;
         volatile bool isRecording;
         volatile bool isNavigating;
-        volatile bool isListeningToBluetooth;
         volatile int currentAzimuth;
         CancellationTokenSource cancelToken;
         private readonly object azimuthLock = new object();
@@ -71,7 +70,6 @@ namespace BionicEyeXamarin {
         public MainPage() {
             isRecording = false;
             isNavigating = false;
-            isListeningToBluetooth = false;
             InitializeComponent();
             CreateView();
             InitSpeechService();
@@ -92,6 +90,9 @@ namespace BionicEyeXamarin {
                 }
                 if (!sucess)
                     await AlertOnUi("Can't reach Bluetooth", "Are you sure Bluetooth is on?, try restart the app", "OK");
+                else {
+                    await ListenToArduino();
+                }
             });
 
         }
@@ -176,9 +177,7 @@ namespace BionicEyeXamarin {
                         await DisplayAlert("Bluetooth is off!", "Can't navigate without the azimuth, make sure bluetooth is turned on", "OK");
                         return;
                     }
-                    if (!isListeningToBluetooth) {
-                        await ListenToArduino();
-                    }
+                   
                     await RecognizeSpeechAsync();
 
                 } else {
@@ -204,7 +203,7 @@ namespace BionicEyeXamarin {
         }
 
         private async Task ListenToArduino() {
-            isListeningToBluetooth = true;
+
             await Task.Run(async () => {
                 while (true) {
                     Thread.Sleep(500);
@@ -298,9 +297,8 @@ namespace BionicEyeXamarin {
                     activityIndicator.IsRunning = true;
                 });
                 ChangeActivityIndicatorColor(Color.Blue);
-                Coordinate src;
                 try {
-                    src = await GetSourceCoordinate();
+                    Coordinate src = await GetSourceCoordinate();
 
                     Debug.WriteLine("Your Coordinate:" + src);
                     //TODO: TAKE AZIMUTH AND REPLACE THE CONSTANT
@@ -385,8 +383,12 @@ namespace BionicEyeXamarin {
 
                     else if (nextTurn == 0)
                         ChangeLabelTextOnUI(directionLabel, $"Continue on street {routeResponse.Paths[0].Instructions[0].StreetName}");
-                    else if (nextTurn > 0)
+                    else if (nextTurn > 0 && nextTurn < 4)
                         ChangeLabelTextOnUI(directionLabel, "Turn right");
+                    else if (nextTurn == 4)
+                        ChangeLabelTextOnUI(directionLabel, "You reached the destenation");
+
+               
                     foreach (var instuction in routeResponse?.Paths[0].Instructions) {
                         Debug.WriteLine($"time:{ instuction.Time} , next step:{instuction.Text}),sign:{instuction.Sign}\n");
                     }
