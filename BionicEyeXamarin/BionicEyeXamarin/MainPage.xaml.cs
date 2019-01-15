@@ -159,6 +159,7 @@ namespace BionicEyeXamarin {
 
             outerLayout.Children.Add(controlGrid);
         }
+        #region UI Methods
 
         private static void ChangeRecordingButtonImage(ImageButton button, string fileName) {
             button.Source = ImageSource.FromResource($"{IMAGES_PATH}.{fileName}");
@@ -187,7 +188,8 @@ namespace BionicEyeXamarin {
                 activityIndicator.IsRunning = false;
             });
             ChangeActivityIndicatorColor(Color.Green);
-        }
+        } 
+        #endregion
 
         private async Task WaitAndExecute(int milisec, Action actionToExecute) {
             if (actionToExecute == null) {
