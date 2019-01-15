@@ -99,7 +99,7 @@ namespace BionicEyeXamarin {
             bluetoothConnectorIsBusy = true;
             Task.Run(async () => {
                 if (await bluetoothConnector.ConnectAsync()) {//As soon as we are connected we need to pull from the values
-                    await ListenToArduino();
+                    await ListenToArduinoAsync();
                     bluetoothConnectorIsBusy = false; //should get here only if listen thread is finished, and so the bluetooth connector is no longer busy
                 } else {// connection failed so we ask the user if he want to try again
                     Device.BeginInvokeOnMainThread(async () => {
@@ -269,7 +269,7 @@ namespace BionicEyeXamarin {
                     string formatedResult = char.ToUpper(speechResult.DisplayText[0]) + speechResult.DisplayText.Substring(1);
                     string location = GetLocationFromText(formatedResult);
                     speechLabel.Text = "Navigating to:" + location;
-                    await NavigateTo(location);
+                    await NavigateToAsync(location);
 
                 } else {
                     await DisplayAlert("Sorry failed to recognize", $"{speechResult.RecognitionStatus}", "OK, I will try again");
@@ -277,7 +277,7 @@ namespace BionicEyeXamarin {
             }
         }
 
-        private async Task NavigateTo(string location) {
+        private async Task NavigateToAsync(string location) {
             try {
                 Coordinate dest = await graphHopperService.getCoordiantesAsync(location);
                 bool shouldNavigate = await DisplayAlert($"Do you want to navigate to {location}?", $"(longitude:{dest.longitude},latitude:{dest.latitude})", "Yes", "No");
@@ -290,7 +290,7 @@ namespace BionicEyeXamarin {
                                 StopNavigation();
                             //New request means new cancellation token
                             cancelToken = new CancellationTokenSource();
-                            await StartNavigationListner(dest, cancelToken.Token);
+                            await StartNavigationListnerAsync(dest, cancelToken.Token);
                         }
                     } catch (Exception ex) {
                         AlertOnUi("Can't navigate", $"please make sure you have gps and internet connection.\nError Message:{ex.Message}", "OK, I will try again");
@@ -323,7 +323,7 @@ namespace BionicEyeXamarin {
         /// <param name="dest">the destenation to navigate to</param>
         /// <param name="token">cancellation token</param>
         /// <returns>Task</returns>
-        private async Task StartNavigationListner(Coordinate dest, CancellationToken token) {
+        private async Task StartNavigationListnerAsync(Coordinate dest, CancellationToken token) {
             isNavigating = true;
             while (isNavigating) {
                 if (token.IsCancellationRequested) {
@@ -337,7 +337,7 @@ namespace BionicEyeXamarin {
                 try {
                     Coordinate src = await GetSourceCoordinate();
                     Debug.WriteLine("Your Coordinate:" + src);
-                    bool isFinished = await RouteWith(src, dest);
+                    bool isFinished = await RouteWithAsync(src, dest);
                     if (isFinished)
                         break;
                     //Before we get to sleep we check for cancellation again
@@ -359,7 +359,7 @@ namespace BionicEyeXamarin {
         /// <param name="src">the source coordinates</param>
         /// <param name="dest">the destenation coordinates</param>
         /// <returns>true iff destenation is reached</returns>
-        private async Task<bool> RouteWith(Coordinate src, Coordinate dest) {
+        private async Task<bool> RouteWithAsync(Coordinate src, Coordinate dest) {
             try {
                 var routeResponse = await graphHopperService.getRouthAsync(src, dest, GetAzimuth());
                 StopActivityIndicator();
@@ -368,7 +368,7 @@ namespace BionicEyeXamarin {
                     AlertOnUi("Congratulations!", "You have reached your destenation!", "Cool,Thanks! :)");
                     return true;
                 }
-                await SendDataToArduino(routeResponse);
+                await SendDataToArduinoAsync(routeResponse);
                 ShowNextTurn(routeResponse);
             } catch (Exception ex) {
                 AlertOnUi("Cloud not navigate!", ex.StackTrace, "OK, I will report this");
@@ -383,7 +383,7 @@ namespace BionicEyeXamarin {
         /// </summary>
         /// <param name="routeResponse">route object from graphhopper</param>
         /// <returns>Task</returns>
-        private async Task SendDataToArduino(RouteResponse routeResponse) {
+        private async Task SendDataToArduinoAsync(RouteResponse routeResponse) {
 
             if (routeResponse != null && routeResponse.Paths.Count > 0) {
                 int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
@@ -463,7 +463,7 @@ namespace BionicEyeXamarin {
         /// Task that listens to belt to get the azimuth.
         /// </summary>
         /// <returns>Task</returns>
-        private async Task ListenToArduino() {
+        private async Task ListenToArduinoAsync() {
 
             await Task.Run(async () => {
                 while (true) {
