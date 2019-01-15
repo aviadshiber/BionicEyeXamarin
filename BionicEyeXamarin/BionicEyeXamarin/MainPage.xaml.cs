@@ -20,9 +20,11 @@ namespace BionicEyeXamarin {
     public partial class MainPage : ContentPage {
         private const string AUDIO_BUTTON_FILE_NAME_UNPRESSED = "AudioB.png";
         private const string AUDIO_BUTTON_FILE_NAME_PRESSED = "AudioBRecording.png";
-        private static readonly string IMAGES_PATH = "BionicEyeXamarin.Images";
+        private const int AUDIO_STOP_RECORDING_AFTER_MILLIS = 4000;
+        private const int AZUMITH_RATE_MILLIS = 500;
         private static readonly int NAVIGATION_SAMPLING = 10000;
-        private readonly int BLUETOOTH_TIMEOUT_SEC = 3;
+        private static readonly string IMAGES_PATH = "BionicEyeXamarin.Images";
+        
 
         #region Connectors
         IBingSpeechService bingSpeechService;
@@ -34,6 +36,7 @@ namespace BionicEyeXamarin {
         volatile bool isRecording;
         volatile bool isNavigating;
         volatile int currentAzimuth;
+        volatile bool bluetoothConnectorIsBusy;
 
         CancellationTokenSource cancelToken;
         private readonly object azimuthLock = new object();
@@ -88,25 +91,25 @@ namespace BionicEyeXamarin {
 
         private void InitBluetooth() {
             bluetoothConnector = DependencyService.Get<IBluetoothConnector>();
+        }
+
+        private void LazyConnectToBluetooth() {
+            if (bluetoothConnectorIsBusy || bluetoothConnector.IsConnected)
+                return; //we dont wont to try to connect twice, or if we are already connected
+            bluetoothConnectorIsBusy = true;
             Task.Run(async () => {
-                bool sucess = false;
-                int count = 0;
-                while (!sucess && count < BLUETOOTH_TIMEOUT_SEC) {
-                    sucess = await bluetoothConnector.ConnectAsync();
-                    await Task.Delay(1000);
-                    count++;
-                }
-                if (sucess) {//As soon as we are connected we need to pull from the values
+                if (await bluetoothConnector.ConnectAsync()) {//As soon as we are connected we need to pull from the values
                     await ListenToArduino();
-                } else {
+                    bluetoothConnectorIsBusy = false; //should get here only if listen thread is finished, and so the bluetooth connector is no longer busy
+                } else {// connection failed so we ask the user if he want to try again
                     Device.BeginInvokeOnMainThread(async () => {
-                        bool tryagain = await DisplayAlert("Can't reach belt via Bluetooth", $"Are you sure Bluetooth is on?, we failed after {BLUETOOTH_TIMEOUT_SEC} times.\nDo you want to try again?", "Yes", "No");
+                        bool tryagain = await DisplayAlert("Can't reach belt via Bluetooth", $"We failed to belt via bluetooth.\nDo you want to try again?", "Yes", "No");
                         if (tryagain)
-                            InitBluetooth();
+                            LazyConnectToBluetooth();
+                        bluetoothConnectorIsBusy = false;
                     });
                 }
             });
-
         }
 
         private void InitGPS() {
@@ -141,7 +144,6 @@ namespace BionicEyeXamarin {
 
             Image logo = new Image {
                 Source = ImageSource.FromResource($"{IMAGES_PATH}.logo.png"),
-                //Scale = 0.5,
                 HorizontalOptions = LayoutOptions.Center,
             };
 
@@ -158,6 +160,35 @@ namespace BionicEyeXamarin {
             outerLayout.Children.Add(controlGrid);
         }
 
+        private static void ChangeRecordingButtonImage(ImageButton button, string fileName) {
+            button.Source = ImageSource.FromResource($"{IMAGES_PATH}.{fileName}");
+        }
+        private void AlertOnUi(string title, string message, string cancel) {
+            Device.BeginInvokeOnMainThread(async () => {
+                await DisplayAlert(title, message, cancel);
+            });
+        }
+
+        private void ChangeLabelVisiabilityOnUI(Label label, bool v) {
+            Device.BeginInvokeOnMainThread(() => { label.IsVisible = v; });
+        }
+
+        private void ChangeLabelTextOnUI(Label label, string v) {
+            Device.BeginInvokeOnMainThread(() => { label.Text = v; });
+        }
+
+        private void ChangeActivityIndicatorColor(Color color) {
+            Device.BeginInvokeOnMainThread(() => {
+                activityIndicator.Color = color;
+            });
+        }
+        private void StopActivityIndicator() {
+            Device.BeginInvokeOnMainThread(() => {
+                activityIndicator.IsRunning = false;
+            });
+            ChangeActivityIndicatorColor(Color.Green);
+        }
+
         private async Task WaitAndExecute(int milisec, Action actionToExecute) {
             if (actionToExecute == null) {
                 throw new ArgumentNullException(nameof(actionToExecute));
@@ -166,46 +197,29 @@ namespace BionicEyeXamarin {
             await Task.Delay(milisec);
             actionToExecute();
         }
+
         private async void RecordButton_Clicked(object sender, EventArgs e) {
             speechLabel.Text = "";
-            if (!bluetoothConnector.IsConnected) {
-                InitBluetooth(); // let's try again to connect and let the user decide again
-                if (!bluetoothConnector.IsConnected) { //if it is still not connected, let the user decide if he wants to ignore it.
-                    bool continueNavigating = await DisplayAlert("Bluetooth Error", "There is no connection to the belt, do you still want to navigate?", "Yes", "No");
-                    if (!continueNavigating) {
-                        StopNavigation();
-                        return; //there is no point to navigate if the bluetooth is not connected => early return
-                    }
+
+            LazyConnectToBluetooth(); // let's try to connect lazly and let the user decide what to do
+            if (!bluetoothConnector.IsConnected) { //if it is still not connected, let the user decide if he wants to ignore it.
+                bool continueNavigating = await DisplayAlert("Bluetooth Error",
+                    "There is no connection to the belt, do you still want to navigate?",
+                    "Yes", "No");
+                if (!continueNavigating) {
+                    StopNavigation(); //if we were already navigating we should no longer navigate
+                    return; //there is no point to navigate if the bluetooth is not connected => early return
                 }
             }
-            try {
-                var audioRecordingService = DependencyService.Get<IAudioRecorderService>();
-                if (!isRecording) {
-                    audioRecordingService.StartRecording();
-                    ChangeRecordingButtonImage(((ImageButton)sender), AUDIO_BUTTON_FILE_NAME_PRESSED);
-                    Debug.WriteLine("Starting to record");
 
-                } else {
-                    Debug.WriteLine("Stopping to record");
-                    audioRecordingService.StopRecording();
+            try {
+                HandleRecording((ImageButton)sender);
+
+                if (isRecording) { //if we are still recocrding we send a task that will automaticlly stop recording
+                    await AutomaticlyStopRecording((ImageButton)sender); 
                 }
-                //Fliping recording state
-                isRecording = !isRecording;
-                if (!isRecording) {
-                    await RecognizeSpeechAsync();
-                } else {
-                    //we stop recording after 4 sec to avoid too long recordings
-                    await WaitAndExecute(4000, async () => {
-                        if (isRecording) {
-                            Debug.WriteLine("Stopping to record");
-                            audioRecordingService.StopRecording();
-                            ChangeRecordingButtonImage((ImageButton)sender, AUDIO_BUTTON_FILE_NAME_UNPRESSED);
-                            isRecording = false;
-                            await RecognizeSpeechAsync();
-                        }
-                    }
-                  );
-                }
+                //the record is ready here so we can send it to speech server
+                await RecognizeSpeechAsync();
             } catch (Exception ex) {
                 await DisplayAlert("Error", ex.Message, "Ok");
             } finally {
@@ -215,35 +229,31 @@ namespace BionicEyeXamarin {
             }
         }
 
-        private static void ChangeRecordingButtonImage(ImageButton button, string fileName) {
-            button.Source = ImageSource.FromResource($"{IMAGES_PATH}.{fileName}");
+        private async Task AutomaticlyStopRecording(ImageButton recordButton) {
+            await WaitAndExecute(AUDIO_STOP_RECORDING_AFTER_MILLIS, () => {
+                if (isRecording) {
+                    Debug.WriteLine("Stopping to record");
+                    var audioRecordingService = DependencyService.Get<IAudioRecorderService>();
+                    audioRecordingService.StopRecording();
+                    ChangeRecordingButtonImage(recordButton, AUDIO_BUTTON_FILE_NAME_UNPRESSED);
+                    isRecording = false;
+                }
+            }
+          );
         }
 
-        private async Task ListenToArduino() {
-
-            await Task.Run(async () => {
-                while (true) {
-                    Thread.Sleep(500);
-
-                    string data = await bluetoothConnector.RecieveAsync();
-                    if (data != null) {
-                        if (data.Length > 3) {
-                            Console.WriteLine($"Data recived from arduino is invalid! {data}");
-                            continue;
-                        }
-                        lock (azimuthLock) {
-                            try {
-                                currentAzimuth = int.Parse(data);
-                            } catch (Exception) {
-                                Console.WriteLine($"Data recived from arduino is invalid! {data}");
-                                continue;
-                            }
-                        }
-
-                    }
-
-                }
-            });
+        private void HandleRecording(ImageButton recordButton) {
+            var audioRecordingService = DependencyService.Get<IAudioRecorderService>();
+            if (!isRecording) {
+                audioRecordingService.StartRecording();
+                ChangeRecordingButtonImage(recordButton, AUDIO_BUTTON_FILE_NAME_PRESSED);
+                Debug.WriteLine("Starting to record");
+            } else {
+                Debug.WriteLine("Stopping to record");
+                audioRecordingService.StopRecording();
+            }
+            //Fliping recording state
+            isRecording = !isRecording;
         }
 
         private async Task RecognizeSpeechAsync() {
@@ -269,7 +279,6 @@ namespace BionicEyeXamarin {
 
         private async Task NavigateTo(string location) {
             try {
-
                 Coordinate dest = await graphHopperService.getCoordiantesAsync(location);
                 bool shouldNavigate = await DisplayAlert($"Do you want to navigate to {location}?", $"(longitude:{dest.longitude},latitude:{dest.latitude})", "Yes", "No");
 
@@ -284,7 +293,7 @@ namespace BionicEyeXamarin {
                             await StartNavigationListner(dest, cancelToken.Token);
                         }
                     } catch (Exception ex) {
-                         AlertOnUi("Can't navigate", $"please make sure you have gps and internet connection.\nError Message:{ex.Message}", "OK, I will try again");
+                        AlertOnUi("Can't navigate", $"please make sure you have gps and internet connection.\nError Message:{ex.Message}", "OK, I will try again");
                     } finally {
                         isNavigating = false;
                         StopActivityIndicator();
@@ -297,6 +306,9 @@ namespace BionicEyeXamarin {
 
         }
 
+        /// <summary>
+        /// Stops the navigation with the cancellation token.
+        /// </summary>
         private void StopNavigation() {
             if (cancelToken != null) {
                 cancelToken.Cancel();
@@ -304,6 +316,13 @@ namespace BionicEyeXamarin {
             }
         }
 
+        /// <summary>
+        /// Start navigation listner will periodically. samples the GPS coordinates as the source, 
+        /// and will route from srouce to destenation.
+        /// </summary>
+        /// <param name="dest">the destenation to navigate to</param>
+        /// <param name="token">cancellation token</param>
+        /// <returns>Task</returns>
         private async Task StartNavigationListner(Coordinate dest, CancellationToken token) {
             isNavigating = true;
             while (isNavigating) {
@@ -328,13 +347,14 @@ namespace BionicEyeXamarin {
                     }
                     Thread.Sleep(NAVIGATION_SAMPLING);
                 } catch (Exception) {
-                     AlertOnUi("GPS Failure!", "Make sure your GPS is active and there is a reception", "OK");
+                    AlertOnUi("GPS Failure!", "Make sure your GPS is active and there is a reception", "OK");
                 }
             }
         }
 
         /// <summary>
         ///  RouthWith just use the graphhopper service and Update the UI accordingly.
+        ///  the method uses the pulls the azimuth from the belt.
         /// </summary>
         /// <param name="src">the source coordinates</param>
         /// <param name="dest">the destenation coordinates</param>
@@ -345,52 +365,52 @@ namespace BionicEyeXamarin {
                 StopActivityIndicator();
                 if (DestenationReached(routeResponse)) {
                     isNavigating = false;
-                     AlertOnUi("Congratulations!", "You have reached your destenation!", "Cool,Thanks! :)");
+                    AlertOnUi("Congratulations!", "You have reached your destenation!", "Cool,Thanks! :)");
                     return true;
                 }
                 await SendDataToArduino(routeResponse);
                 ShowNextTurn(routeResponse);
             } catch (Exception ex) {
-                 AlertOnUi("Cloud not navigate!", ex.StackTrace, "OK, I will report this");
+                AlertOnUi("Cloud not navigate!", ex.StackTrace, "OK, I will report this");
             }
             return false;
         }
 
+        /// <summary>
+        /// The method sends the next indication to the belt to signle the next turn. 
+        ///  The protocol is simple 0=TURN_LEFT, 1=TURN_SLIGHT_LEFT,2=TURN_SLIGHT_LEFT, 3=CONTINUE_ON_STREET,4=TURN_SLIGHT_RIGHT,5=TURN_RIGHT
+        ///  6=TURN_SHARP_RIGHT, 7=FINISH
+        /// </summary>
+        /// <param name="routeResponse">route object from graphhopper</param>
+        /// <returns>Task</returns>
         private async Task SendDataToArduino(RouteResponse routeResponse) {
 
             if (routeResponse != null && routeResponse.Paths.Count > 0) {
                 int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
                 if (nextTurn != null) {
-                    nextTurn += 3; //to avoid nagative values (single char)
+                    nextTurn += 3; //to avoid negative values (single char)
                     await bluetoothConnector.SendAsync(nextTurn.ToString());
                 }
             }
 
         }
-
+        /// <summary>
+        /// Gets the azimith atomiclly.
+        /// </summary>
+        /// <returns>azimuth value</returns>
         private int GetAzimuth() {
             int azimuth;
             lock (azimuthLock) {
                 azimuth = currentAzimuth;
             }
-
             return azimuth;
         }
 
-        private void AlertOnUi(string title, string message, string cancel) {
-             Device.BeginInvokeOnMainThread(async () => {
-                await DisplayAlert(title, message, cancel);
-            });
-        }
-
-
-
-        private void ChangeActivityIndicatorColor(Color color) {
-            Device.BeginInvokeOnMainThread(() => {
-                activityIndicator.Color = color;
-            });
-        }
-
+        /// <summary>
+        /// Checks if destenation is reached
+        /// </summary>
+        /// <param name="routeResponse">graphhopper route object</param>
+        /// <returns>true if destenation is reached, false otherwise</returns>
         private bool DestenationReached(RouteResponse routeResponse) {
             if (routeResponse != null)
                 return (routeResponse.Paths.Count > 0 && routeResponse.Paths[0].Instructions.Count == 0) ||
@@ -398,14 +418,11 @@ namespace BionicEyeXamarin {
                      routeResponse.Paths[0].Distance < 2;
             return false;
         }
-
-        private void StopActivityIndicator() {
-            Device.BeginInvokeOnMainThread(() => {
-                activityIndicator.IsRunning = false;
-            });
-            ChangeActivityIndicatorColor(Color.Green);
-        }
-
+       
+        /// <summary>
+        /// The method displays the next turn on the UI.
+        /// </summary>
+        /// <param name="routeResponse">route response from graphhopper inorder to understand the routh</param>
         private void ShowNextTurn(RouteResponse routeResponse) {
             if (routeResponse != null) {
                 if (routeResponse.Paths.Count > 0) {
@@ -427,15 +444,11 @@ namespace BionicEyeXamarin {
             }
 
         }
-
-        private void ChangeLabelVisiabilityOnUI(Label label, bool v) {
-            Device.BeginInvokeOnMainThread(() => { label.IsVisible = v; });
-        }
-
-        private void ChangeLabelTextOnUI(Label label, string v) {
-            Device.BeginInvokeOnMainThread(() => { label.Text = v; });
-        }
-
+       
+        /// <summary>
+        /// Pull our coordinates from the mobile.
+        /// </summary>
+        /// <returns>Coordinates of our position</returns>
         private async Task<Coordinate> GetSourceCoordinate() {
             Position position = null;
             try {
@@ -445,12 +458,47 @@ namespace BionicEyeXamarin {
                 Debug.WriteLine("GPS Exception was throwned!");
                 throw ex;
             }
+        }
+        /// <summary>
+        /// Task that listens to belt to get the azimuth.
+        /// </summary>
+        /// <returns>Task</returns>
+        private async Task ListenToArduino() {
 
+            await Task.Run(async () => {
+                while (true) {
+                    Thread.Sleep(AZUMITH_RATE_MILLIS);
 
+                    string data = await bluetoothConnector.RecieveAsync();
+                    if (data != null) {
+                        if (data.Length > 3) {
+                            Console.WriteLine($"Data recived from arduino is invalid! {data}");
+                            continue;
+                        }
+                        lock (azimuthLock) {
+                            try {
+                                currentAzimuth = int.Parse(data);
+                            } catch (Exception) {
+                                Console.WriteLine($"Data recived from arduino is invalid! {data}");
+                                continue;
+                            }
+                        }
+
+                    }
+
+                }
+            });
         }
 
+        /// <summary>
+        /// After reciving some text from speech service we need to extract the location.
+        /// it is reasonable that the user will use conjunction word to describe the place to navigate to, 
+        /// or will use none (just the place to navigate to- in that case the method do nothing).
+        /// </summary>
+        /// <param name="text">a text that describe the user desire</param>
+        /// <returns></returns>
         private string GetLocationFromText(string text) {
-            text = text.Replace(".", "");
+            text = text.Replace(".", "");//no need for dots in our text
             int index = text.IndexOf("to");//Locating place
             int locationIndex = index + 2;
             if (index > 0 && locationIndex < text.Length) {
