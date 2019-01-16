@@ -1,10 +1,12 @@
 # BionicEyeXamarin
 Phone application in Xamarin (Project in IOT course)
-Project description:
+
+![Poster](https://i.ibb.co/dmBB5S1/poster.png "Poster")
+
+![Mobile App](https://i.ibb.co/PZPWysS/phoneapp-1.png "Mobile app preview")
+
+## Details about the project:
 https://www.linkedin.com/pulse/ultrasonic-eye-aviad-shiber
-
-![Mobile App](https://i.ibb.co/kXfgkBR/phoneapp.png "Mobile app preview")
-
 ## Installation
 
 ### The current project uses the following projects:
