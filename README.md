@@ -2,6 +2,9 @@
 Phone application in Xamarin (Project in IOT course)
 Project description:
 https://www.linkedin.com/pulse/ultrasonic-eye-aviad-shiber
+
+![Mobile App](https://i.ibb.co/kXfgkBR/phoneapp.png "Mobile app preview")
+
 ## Installation
 
 ### The current project uses the following projects:
