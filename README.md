@@ -1,5 +1,7 @@
 # BionicEyeXamarin
 Phone application in Xamarin (Project in IOT course)
+## News
+- The mobile app is done, soon the arduino program will be here too :)
 
 ![Poster](https://i.ibb.co/dmBB5S1/poster.png "Poster")
 
