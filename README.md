@@ -3,6 +3,7 @@ Phone application in Xamarin (Project in IOT course)
 ## News
 - The mobile app is done, soon the arduino program will be here too :)
 
+#Project Description
 ![Poster](https://i.ibb.co/dmBB5S1/poster.png "Poster")
 
 ![Mobile App](https://i.ibb.co/PZPWysS/phoneapp-1.png "Mobile app preview")
