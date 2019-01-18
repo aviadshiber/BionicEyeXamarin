@@ -2,19 +2,15 @@
 using AzureServices.Utils;
 using GraphHooperConnector;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Xamarin.Forms;
-using Plugin.Geolocator;
-using Plugin.Geolocator.Abstractions;
 using IO.Swagger.Model;
 using System.Threading;
 using BionicEyeXamarin.Helpers;
 using BionicEyeXamarin.Services;
-using System.IO;
+using Xamarin.Essentials;
+using Plugin.Geolocator.Abstractions;
 
 namespace BionicEyeXamarin {
     public partial class MainPage : ContentPage {
@@ -41,6 +37,8 @@ namespace BionicEyeXamarin {
         volatile int currentTimeDuration;
         volatile int currentAzimuth;
         volatile bool bluetoothConnectorIsBusy;
+        volatile bool isStartInstructionBeenGiven;
+
 
         CancellationTokenSource cancelToken;
         private readonly object azimuthLock = new object();
@@ -130,10 +128,11 @@ namespace BionicEyeXamarin {
                 StopActivityIndicator();
                 textToSpeechService.Speak(status);
             });
+
         }
 
         private void InitGPS() {
-            gpsService = CrossGeolocator.Current;
+            //gpsService = CrossGeolocator.Current;
         }
 
         private void InitGraphHopper() {
@@ -246,6 +245,7 @@ namespace BionicEyeXamarin {
             }
             */
             try {
+                Vibration.Vibrate(TimeSpan.FromMilliseconds(100));
                 HandleRecording((ImageButton)sender);
 
                 if (isRecording) { //if we are still recocrding we send a task that will automaticlly stop recording
@@ -303,8 +303,8 @@ namespace BionicEyeXamarin {
                     string formatedResult = char.ToUpper(speechResult.DisplayText[0]) + speechResult.DisplayText.Substring(1);
                     string location = GetLocationFromText(formatedResult);
                     speechLabel.Text = "Navigating to:" + location;
-                    await NavigateToAsync(location);
 
+                    await NavigateToAsync(location);
                 } else {
                     textToSpeechService.Speak($"{speechResult.RecognitionStatus}");
                     await DisplayAlert("Sorry failed to recognize", $"{speechResult.RecognitionStatus}", "OK, I will try again");
@@ -317,6 +317,7 @@ namespace BionicEyeXamarin {
                 Coordinate dest = await graphHopperService.getCoordiantesAsync(location);
                 string question = $"Would you like to navigate to {location}?";
                 textToSpeechService.Speak(question);
+
                 bool shouldNavigate = await DisplayAlert(question, "", "Yes", "No");
 
                 await Task.Run(async () => {
@@ -382,12 +383,12 @@ namespace BionicEyeXamarin {
                         Debug.WriteLine("--------The last navigation request was cancelled--------------");
                         break;
                     }
-
                 } catch (Exception) {
-                    AlertOnUi("GPS Failure!", "Make sure your GPS is active and there is a reception", "OK");
+                    AlertOnUi("GPS Failure!", "Make sure your GPS is active and there is a reception and try again", "OK");
                 }
                 int timeLeft = currentTimeDuration / 2;
                 Thread.Sleep(Math.Min(NAVIGATION_MAX_SAMPLING_MILLIS, timeLeft));
+
             }
         }
 
@@ -409,6 +410,7 @@ namespace BionicEyeXamarin {
                 UpdateCurrentTimeDuration(routeResponse);
                 if (DestenationReached(routeResponse)) {
                     isNavigating = false;
+                    await TextToSpeech.SpeakAsync("You have reached your destenation!");
                     AlertOnUi("Congratulations!", "You have reached your destenation!", "Cool,Thanks! :)");
                     return true;
                 }
@@ -492,6 +494,7 @@ namespace BionicEyeXamarin {
                     int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
                     ChangeLabelVisiabilityOnUI(directionLabel, true);
                     ChangeLabelTextOnUI(directionLabel, ExtractFullDescriptionFromRoute(routeResponse));
+
 #if DEBUG
                     foreach (var instuction in routeResponse?.Paths[0].Instructions) {
                         Debug.WriteLine($"time:{ instuction.Time} , next step:{instuction.Text}),sign:{instuction.Sign}\n");
@@ -516,12 +519,33 @@ namespace BionicEyeXamarin {
         /// </summary>
         /// <returns>Coordinates of our position</returns>
         private async Task<Coordinate> GetSourceCoordinate() {
-            Position position = null;
+            //Position position = null;
+            Xamarin.Essentials.Location location =null;
             try {
-                position = await gpsService.GetPositionAsync(TimeSpan.FromSeconds(10));
-                return new Coordinate(position.Latitude, position.Longitude);
+                //bool isAzimuthFallBackNeeded = !bluetoothService.IsConnected;
+                //bool isAzimuthFallBackNeeded = false;
+                //if there is no connection to bluetooth we fallback to smartphone azimuth
+                //position = await gpsService.GetPositionAsync(timeout:TimeSpan.FromSeconds(10), includeHeading: isAzimuthFallBackNeeded);
+                //var request = new GeolocationRequest(GeolocationAccuracy.Default, TimeSpan.FromSeconds(10));
+                // location = await Geolocation.GetLocationAsync(request);
+               
+                location = await Geolocation.GetLastKnownLocationAsync();
+                /*
+                if (isAzimuthFallBackNeeded && location?.Course!=null) {
+                    lock (azimuthLock) {
+                        currentAzimuth = (int)location.Course;
+                    }
+                }
+                */
+                return new Coordinate(location.Latitude, location.Longitude);
+            } catch (FeatureNotSupportedException fnsEx) {
+                Debug.WriteLine($"Not Supported Exception! {fnsEx}");
+                throw fnsEx;
+            } catch (PermissionException pEx) {
+                Debug.WriteLine($"Permission Exception! {pEx}");
+                throw pEx;
             } catch (Exception ex) {
-                Debug.WriteLine("GPS Exception was throwned!");
+                Debug.WriteLine($"GPS Exception was throwned! {location}.Exception details:{ex}");
                 throw ex;
             }
         }
