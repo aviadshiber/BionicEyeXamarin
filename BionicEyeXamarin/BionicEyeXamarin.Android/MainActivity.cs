@@ -8,17 +8,14 @@ using Android.Widget;
 using Android.OS;
 using Plugin.Permissions;
 
-namespace BionicEyeXamarin.Droid
-{
+namespace BionicEyeXamarin.Droid {
     [Activity(Label = "BionicEyeXamarin", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation)]
-    public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity
-    {
+    public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity {
         public static MainActivity Instance { get; private set; }
         public MainActivity() {
             Instance = this;
         }
-        protected override void OnCreate(Bundle savedInstanceState)
-        {
+        protected override void OnCreate(Bundle savedInstanceState) {
             TabLayoutResource = Resource.Layout.Tabbar;
             ToolbarResource = Resource.Layout.Toolbar;
 
