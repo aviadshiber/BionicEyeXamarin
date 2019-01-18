@@ -20,6 +20,7 @@ namespace TodoCognitive.Droid
         {
             base.OnCreate();
             RegisterActivityLifecycleCallbacks(this);
+            CrossCurrentActivity.Current.Init(this);
             //A great place to initialize Xamarin.Insights and Dependency Services!
         }
 
