@@ -25,7 +25,7 @@ namespace BionicEyeXamarin {
         private const int AZUMITH_RATE_MILLIS = 500;
         private static readonly int NAVIGATION_MAX_SAMPLING_MILLIS = 10000;
         private static readonly string IMAGES_PATH = "BionicEyeXamarin.Images";
-        
+
 
         #region Connectors
         IBingSpeechService bingSpeechService;
@@ -36,7 +36,6 @@ namespace BionicEyeXamarin {
 
         volatile bool isRecording;
         volatile bool isNavigating;
-        volatile bool isStartInstructionBeenGiven;
         volatile int currentTimeDuration;
         volatile int currentAzimuth;
         volatile bool bluetoothConnectorIsBusy;
@@ -95,24 +94,26 @@ namespace BionicEyeXamarin {
 
         private void InitBluetooth() {
             bluetoothService = DependencyService.Get<IBluetoothConnector>();
+            ConnectToBluetooth();
         }
 
         private void ConnectToBluetooth() {
             if (bluetoothConnectorIsBusy || bluetoothService.IsConnected)
                 return; //we dont wont to try to connect twice, or if we are already connected
-            bluetoothConnectorIsBusy = true;
             Task.Run(async () => {
+                bluetoothConnectorIsBusy = true;
+                StartActivityIndicator(Color.DeepSkyBlue);
+                string status;
                 if (await bluetoothService.ConnectAsync()) {//As soon as we are connected we need to pull from the values
+                    status = "Bionic Eye is now connected to belt";
                     await ListenToArduinoAsync();
                     bluetoothConnectorIsBusy = false; //should get here only if listen thread is finished, and so the bluetooth connector is no longer busy
-                } else {// connection failed so we ask the user if he want to try again
-                    Device.BeginInvokeOnMainThread(async () => {
-                        bool tryagain = await DisplayAlert("Can't reach belt via Bluetooth", $"We failed to belt via bluetooth.\nDo you want to try again?", "Yes", "No");
-                        if (tryagain)
-                            ConnectToBluetooth();
-                        bluetoothConnectorIsBusy = false;
-                    });
+                } else {
+                    status = "Failed to connect via bluetooth";
+                    bluetoothConnectorIsBusy = false;
+                    AlertOnUi("Could not reach belt via bluetooth", status, "OK");
                 }
+                StopActivityIndicator();
             });
         }
 
@@ -191,12 +192,18 @@ namespace BionicEyeXamarin {
                 activityIndicator.Color = color;
             });
         }
+        private void StartActivityIndicator(Color c) {
+            Device.BeginInvokeOnMainThread(() => {
+                activityIndicator.IsRunning = true;
+            });
+            ChangeActivityIndicatorColor(c);
+        }
         private void StopActivityIndicator() {
             Device.BeginInvokeOnMainThread(() => {
                 activityIndicator.IsRunning = false;
             });
             ChangeActivityIndicatorColor(Color.Green);
-        } 
+        }
         #endregion
 
         private async Task WaitAndExecute(int milisec, Action actionToExecute) {
@@ -226,7 +233,7 @@ namespace BionicEyeXamarin {
                 HandleRecording((ImageButton)sender);
 
                 if (isRecording) { //if we are still recocrding we send a task that will automaticlly stop recording
-                    await AutomaticlyStopRecording((ImageButton)sender); 
+                    await AutomaticlyStopRecording((ImageButton)sender);
                 }
                 //the record is ready here so we can send it to speech server
                 await RecognizeSpeechAsync();
@@ -355,12 +362,12 @@ namespace BionicEyeXamarin {
                         Debug.WriteLine("--------The last navigation request was cancelled--------------");
                         break;
                     }
-                    
+
                 } catch (Exception) {
                     AlertOnUi("GPS Failure!", "Make sure your GPS is active and there is a reception", "OK");
                 }
                 int timeLeft = currentTimeDuration / 2;
-                Thread.Sleep(Math.Min(NAVIGATION_MAX_SAMPLING_MILLIS,timeLeft));
+                Thread.Sleep(Math.Min(NAVIGATION_MAX_SAMPLING_MILLIS, timeLeft));
             }
         }
 
@@ -414,7 +421,7 @@ namespace BionicEyeXamarin {
                         await bluetoothService.SendAsync(nextTurn.ToString());
                     }
                 }
-                
+
             }
 
         }
@@ -442,7 +449,7 @@ namespace BionicEyeXamarin {
                      routeResponse.Paths[0].Distance < 2;
             return false;
         }
-       
+
         /// <summary>
         /// The method displays the next turn on the UI.
         /// </summary>
@@ -453,10 +460,10 @@ namespace BionicEyeXamarin {
                     int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
                     ChangeLabelVisiabilityOnUI(directionLabel, true);
 
-                    string description = routeResponse.Paths[0].Instructions[0].Text + ".\n";
-                    description += $".\n The duration for this instruction: {routeResponse.Paths[0].Instructions[0].Time / 1000} [sec]";
+                    string description = routeResponse.Paths[0].Instructions[0].Text;
+                    description += $"for : {routeResponse.Paths[0].Instructions[0].Time / 1000}[sec]";
                     if (routeResponse.Paths[0].Instructions.Count > 1)
-                        description += $", and then {routeResponse.Paths[0].Instructions[1].Text}";
+                        description += $",\nand then {routeResponse.Paths[0].Instructions[1].Text}";
                     ChangeLabelTextOnUI(directionLabel, description);
 #if DEBUG
                     foreach (var instuction in routeResponse?.Paths[0].Instructions) {
@@ -468,7 +475,7 @@ namespace BionicEyeXamarin {
             }
 
         }
-       
+
         /// <summary>
         /// Pull our coordinates from the mobile.
         /// </summary>
