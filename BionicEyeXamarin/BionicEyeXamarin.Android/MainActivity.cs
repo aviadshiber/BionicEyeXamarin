@@ -13,6 +13,10 @@ namespace BionicEyeXamarin.Droid
     [Activity(Label = "BionicEyeXamarin", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation)]
     public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity
     {
+        public static MainActivity Instance { get; private set; }
+        public MainActivity() {
+            Instance = this;
+        }
         protected override void OnCreate(Bundle savedInstanceState)
         {
             TabLayoutResource = Resource.Layout.Tabbar;
