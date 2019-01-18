@@ -10,6 +10,7 @@ using System.Threading;
 using BionicEyeXamarin.Helpers;
 using BionicEyeXamarin.Services;
 using Xamarin.Essentials;
+using Plugin.Geolocator.Abstractions;
 
 namespace BionicEyeXamarin {
     public partial class MainPage : ContentPage {
@@ -33,7 +34,6 @@ namespace BionicEyeXamarin {
         volatile bool isNavigating;
         volatile int currentTimeDuration;
         volatile int currentAzimuth;
-        volatile int currentTimeDuration;
         volatile bool bluetoothConnectorIsBusy;
         volatile bool isStartInstructionBeenGiven;
 
@@ -386,10 +386,6 @@ namespace BionicEyeXamarin {
         private async Task<bool> RouteWithAsync(Coordinate src, Coordinate dest) {
             try {
                 var routeResponse = await graphHopperService.getRouthAsync(src, dest, GetAzimuth());
-                if (!isStartInstructionBeenGiven) {
-                    await StartRouteSpeech(routeResponse);
-                    isStartInstructionBeenGiven = true;
-                }
                 StopActivityIndicator();
                 UpdateCurrentTimeDuration(routeResponse);
                 if (DestenationReached(routeResponse)) {
