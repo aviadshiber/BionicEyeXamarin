@@ -28,18 +28,6 @@ namespace BionicEyeXamarin.Droid
 		{
 			global::PCLStorage.Resource.String.ApplicationName = global::BionicEyeXamarin.Droid.Resource.String.ApplicationName;
 			global::PCLStorage.Resource.String.Hello = global::BionicEyeXamarin.Droid.Resource.String.Hello;
-			global::Syncfusion.XForms.Android.Core.Resource.Drawable.inputlayout_togglecollapseicon = global::BionicEyeXamarin.Droid.Resource.Drawable.inputlayout_togglecollapseicon;
-			global::Syncfusion.XForms.Android.Core.Resource.Drawable.inputlayout_togglevisibleicon = global::BionicEyeXamarin.Droid.Resource.Drawable.inputlayout_togglevisibleicon;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.Drawable.inputlayout_togglecollapseicon = global::BionicEyeXamarin.Droid.Resource.Drawable.inputlayout_togglecollapseicon;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.Drawable.inputlayout_togglevisibleicon = global::BionicEyeXamarin.Droid.Resource.Drawable.inputlayout_togglevisibleicon;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.Drawable.popup_forms_android_close_icon = global::BionicEyeXamarin.Droid.Resource.Drawable.popup_forms_android_close_icon;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.Drawable.popup_forms_android_shadow = global::BionicEyeXamarin.Droid.Resource.Drawable.popup_forms_android_shadow;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.Id.BorderView = global::BionicEyeXamarin.Droid.Resource.Id.BorderView;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.String.accept = global::BionicEyeXamarin.Droid.Resource.String.accept;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.String.decline = global::BionicEyeXamarin.Droid.Resource.String.decline;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.String.library_name = global::BionicEyeXamarin.Droid.Resource.String.library_name;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.String.popup_message = global::BionicEyeXamarin.Droid.Resource.String.popup_message;
-			global::Syncfusion.XForms.Android.PopupLayout.Resource.String.title = global::BionicEyeXamarin.Droid.Resource.String.title;
 			global::Xamarin.Forms.Platform.Android.Resource.Attribute.actionBarSize = global::BionicEyeXamarin.Droid.Resource.Attribute.actionBarSize;
 		}
 		
@@ -2356,26 +2344,26 @@ namespace BionicEyeXamarin.Droid
 			// aapt resource value: 0x7f020053
 			public const int avd_hide_password = 2130837587;
 			
-			// aapt resource value: 0x7f020135
-			public const int avd_hide_password_1 = 2130837813;
+			// aapt resource value: 0x7f020131
+			public const int avd_hide_password_1 = 2130837809;
 			
-			// aapt resource value: 0x7f020136
-			public const int avd_hide_password_2 = 2130837814;
+			// aapt resource value: 0x7f020132
+			public const int avd_hide_password_2 = 2130837810;
 			
-			// aapt resource value: 0x7f020137
-			public const int avd_hide_password_3 = 2130837815;
+			// aapt resource value: 0x7f020133
+			public const int avd_hide_password_3 = 2130837811;
 			
 			// aapt resource value: 0x7f020054
 			public const int avd_show_password = 2130837588;
 			
-			// aapt resource value: 0x7f020138
-			public const int avd_show_password_1 = 2130837816;
+			// aapt resource value: 0x7f020134
+			public const int avd_show_password_1 = 2130837812;
 			
-			// aapt resource value: 0x7f020139
-			public const int avd_show_password_2 = 2130837817;
+			// aapt resource value: 0x7f020135
+			public const int avd_show_password_2 = 2130837813;
 			
-			// aapt resource value: 0x7f02013a
-			public const int avd_show_password_3 = 2130837818;
+			// aapt resource value: 0x7f020136
+			public const int avd_show_password_3 = 2130837814;
 			
 			// aapt resource value: 0x7f020055
 			public const int design_bottom_navigation_item_background = 2130837589;
@@ -2930,124 +2918,112 @@ namespace BionicEyeXamarin.Droid
 			public const int ic_vol_type_tv_light = 2130837772;
 			
 			// aapt resource value: 0x7f02010d
-			public const int inputlayout_togglecollapseicon = 2130837773;
+			public const int mr_button_connected_dark = 2130837773;
 			
 			// aapt resource value: 0x7f02010e
-			public const int inputlayout_togglevisibleicon = 2130837774;
+			public const int mr_button_connected_light = 2130837774;
 			
 			// aapt resource value: 0x7f02010f
-			public const int mr_button_connected_dark = 2130837775;
+			public const int mr_button_connecting_dark = 2130837775;
 			
 			// aapt resource value: 0x7f020110
-			public const int mr_button_connected_light = 2130837776;
+			public const int mr_button_connecting_light = 2130837776;
 			
 			// aapt resource value: 0x7f020111
-			public const int mr_button_connecting_dark = 2130837777;
+			public const int mr_button_dark = 2130837777;
 			
 			// aapt resource value: 0x7f020112
-			public const int mr_button_connecting_light = 2130837778;
+			public const int mr_button_light = 2130837778;
 			
 			// aapt resource value: 0x7f020113
-			public const int mr_button_dark = 2130837779;
+			public const int mr_dialog_close_dark = 2130837779;
 			
 			// aapt resource value: 0x7f020114
-			public const int mr_button_light = 2130837780;
+			public const int mr_dialog_close_light = 2130837780;
 			
 			// aapt resource value: 0x7f020115
-			public const int mr_dialog_close_dark = 2130837781;
+			public const int mr_dialog_material_background_dark = 2130837781;
 			
 			// aapt resource value: 0x7f020116
-			public const int mr_dialog_close_light = 2130837782;
+			public const int mr_dialog_material_background_light = 2130837782;
 			
 			// aapt resource value: 0x7f020117
-			public const int mr_dialog_material_background_dark = 2130837783;
+			public const int mr_group_collapse = 2130837783;
 			
 			// aapt resource value: 0x7f020118
-			public const int mr_dialog_material_background_light = 2130837784;
+			public const int mr_group_expand = 2130837784;
 			
 			// aapt resource value: 0x7f020119
-			public const int mr_group_collapse = 2130837785;
+			public const int mr_media_pause_dark = 2130837785;
 			
 			// aapt resource value: 0x7f02011a
-			public const int mr_group_expand = 2130837786;
+			public const int mr_media_pause_light = 2130837786;
 			
 			// aapt resource value: 0x7f02011b
-			public const int mr_media_pause_dark = 2130837787;
+			public const int mr_media_play_dark = 2130837787;
 			
 			// aapt resource value: 0x7f02011c
-			public const int mr_media_pause_light = 2130837788;
+			public const int mr_media_play_light = 2130837788;
 			
 			// aapt resource value: 0x7f02011d
-			public const int mr_media_play_dark = 2130837789;
+			public const int mr_media_stop_dark = 2130837789;
 			
 			// aapt resource value: 0x7f02011e
-			public const int mr_media_play_light = 2130837790;
+			public const int mr_media_stop_light = 2130837790;
 			
 			// aapt resource value: 0x7f02011f
-			public const int mr_media_stop_dark = 2130837791;
+			public const int mr_vol_type_audiotrack_dark = 2130837791;
 			
 			// aapt resource value: 0x7f020120
-			public const int mr_media_stop_light = 2130837792;
+			public const int mr_vol_type_audiotrack_light = 2130837792;
 			
 			// aapt resource value: 0x7f020121
-			public const int mr_vol_type_audiotrack_dark = 2130837793;
+			public const int navigation_empty_icon = 2130837793;
 			
 			// aapt resource value: 0x7f020122
-			public const int mr_vol_type_audiotrack_light = 2130837794;
+			public const int notification_action_background = 2130837794;
 			
 			// aapt resource value: 0x7f020123
-			public const int navigation_empty_icon = 2130837795;
+			public const int notification_bg = 2130837795;
 			
 			// aapt resource value: 0x7f020124
-			public const int notification_action_background = 2130837796;
+			public const int notification_bg_low = 2130837796;
 			
 			// aapt resource value: 0x7f020125
-			public const int notification_bg = 2130837797;
+			public const int notification_bg_low_normal = 2130837797;
 			
 			// aapt resource value: 0x7f020126
-			public const int notification_bg_low = 2130837798;
+			public const int notification_bg_low_pressed = 2130837798;
 			
 			// aapt resource value: 0x7f020127
-			public const int notification_bg_low_normal = 2130837799;
+			public const int notification_bg_normal = 2130837799;
 			
 			// aapt resource value: 0x7f020128
-			public const int notification_bg_low_pressed = 2130837800;
+			public const int notification_bg_normal_pressed = 2130837800;
 			
 			// aapt resource value: 0x7f020129
-			public const int notification_bg_normal = 2130837801;
-			
-			// aapt resource value: 0x7f02012a
-			public const int notification_bg_normal_pressed = 2130837802;
-			
-			// aapt resource value: 0x7f02012b
-			public const int notification_icon_background = 2130837803;
-			
-			// aapt resource value: 0x7f020133
-			public const int notification_template_icon_bg = 2130837811;
-			
-			// aapt resource value: 0x7f020134
-			public const int notification_template_icon_low_bg = 2130837812;
-			
-			// aapt resource value: 0x7f02012c
-			public const int notification_tile_bg = 2130837804;
-			
-			// aapt resource value: 0x7f02012d
-			public const int notify_panel_notification_icon_bg = 2130837805;
-			
-			// aapt resource value: 0x7f02012e
-			public const int popup_forms_android_close_icon = 2130837806;
+			public const int notification_icon_background = 2130837801;
 			
 			// aapt resource value: 0x7f02012f
-			public const int popup_forms_android_shadow = 2130837807;
+			public const int notification_template_icon_bg = 2130837807;
 			
 			// aapt resource value: 0x7f020130
-			public const int tooltip_frame_dark = 2130837808;
+			public const int notification_template_icon_low_bg = 2130837808;
 			
-			// aapt resource value: 0x7f020131
-			public const int tooltip_frame_light = 2130837809;
+			// aapt resource value: 0x7f02012a
+			public const int notification_tile_bg = 2130837802;
 			
-			// aapt resource value: 0x7f020132
-			public const int wood = 2130837810;
+			// aapt resource value: 0x7f02012b
+			public const int notify_panel_notification_icon_bg = 2130837803;
+			
+			// aapt resource value: 0x7f02012c
+			public const int tooltip_frame_dark = 2130837804;
+			
+			// aapt resource value: 0x7f02012d
+			public const int tooltip_frame_light = 2130837805;
+			
+			// aapt resource value: 0x7f02012e
+			public const int wood = 2130837806;
 			
 			static Drawable()
 			{
@@ -3064,9 +3040,6 @@ namespace BionicEyeXamarin.Droid
 			
 			// aapt resource value: 0x7f090032
 			public const int ALT = 2131296306;
-			
-			// aapt resource value: 0x7f0900cb
-			public const int BorderView = 2131296459;
 			
 			// aapt resource value: 0x7f090033
 			public const int CTRL = 2131296307;
@@ -3997,11 +3970,11 @@ namespace BionicEyeXamarin.Droid
 		public partial class String
 		{
 			
-			// aapt resource value: 0x7f0a0042
-			public const int ApplicationName = 2131361858;
+			// aapt resource value: 0x7f0a003d
+			public const int ApplicationName = 2131361853;
 			
-			// aapt resource value: 0x7f0a0041
-			public const int Hello = 2131361857;
+			// aapt resource value: 0x7f0a003c
+			public const int Hello = 2131361852;
 			
 			// aapt resource value: 0x7f0a0015
 			public const int abc_action_bar_home_description = 2131361813;
@@ -4090,9 +4063,6 @@ namespace BionicEyeXamarin.Droid
 			// aapt resource value: 0x7f0a0025
 			public const int abc_toolbar_collapse_description = 2131361829;
 			
-			// aapt resource value: 0x7f0a003f
-			public const int accept = 2131361855;
-			
 			// aapt resource value: 0x7f0a0033
 			public const int appbar_scrolling_view_behavior = 2131361843;
 			
@@ -4101,12 +4071,6 @@ namespace BionicEyeXamarin.Droid
 			
 			// aapt resource value: 0x7f0a0035
 			public const int character_counter_pattern = 2131361845;
-			
-			// aapt resource value: 0x7f0a0040
-			public const int decline = 2131361856;
-			
-			// aapt resource value: 0x7f0a003c
-			public const int library_name = 2131361852;
 			
 			// aapt resource value: 0x7f0a0000
 			public const int mr_button_content_description = 2131361792;
@@ -4186,17 +4150,11 @@ namespace BionicEyeXamarin.Droid
 			// aapt resource value: 0x7f0a003a
 			public const int path_password_strike_through = 2131361850;
 			
-			// aapt resource value: 0x7f0a003e
-			public const int popup_message = 2131361854;
-			
 			// aapt resource value: 0x7f0a0026
 			public const int search_menu_title = 2131361830;
 			
 			// aapt resource value: 0x7f0a003b
 			public const int status_bar_notification_info_overflow = 2131361851;
-			
-			// aapt resource value: 0x7f0a003d
-			public const int title = 2131361853;
 			
 			static String()
 			{
