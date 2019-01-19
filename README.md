@@ -13,6 +13,7 @@ https://www.linkedin.com/pulse/ultrasonic-eye-aviad-shiber
 ## Installation
 
 ### The current project uses the following projects:
+add them to parent folder(../) of that project
 * [GraphHopperConnector](https://github.com/aviadshiber/GraphHooperExample/tree/master/GraphHooperConnector) - for the navigation
 * [AzureServices](https://github.com/aviadshiber/AzureServices) - for the speech recognition 
 
