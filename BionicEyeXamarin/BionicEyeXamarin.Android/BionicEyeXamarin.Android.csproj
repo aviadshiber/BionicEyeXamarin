@@ -75,6 +75,7 @@
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\BluetoothConnector.cs" />
+    <Compile Include="Services\TextToSpeechImplementation.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -106,16 +107,6 @@
     </AndroidResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\AzureServices\AzureServices\AzureServices.csproj">
-      <Project>{B4BBBF26-EADC-4EE3-B6B5-8FB27469C15F}</Project>
-      <Name>AzureServices</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\BionicEyeXamarin\BionicEyeXamarin.csproj">
-      <Project>{D8F57C20-0D37-4652-A748-3194C31CF767}</Project>
-      <Name>BionicEyeXamarin</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <AndroidResource Include="Resources\drawable\wood.jpg" />
   </ItemGroup>
   <ItemGroup>
@@ -135,6 +126,16 @@
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\drawable-mdpi\ic_launcher.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\AzureServices\AzureServices\AzureServices.csproj">
+      <Project>{B4BBBF26-EADC-4EE3-B6B5-8FB27469C15F}</Project>
+      <Name>AzureServices</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\BionicEyeXamarin\BionicEyeXamarin.csproj">
+      <Project>{5dca49ce-694d-47f9-896a-11a913ccbe05}</Project>
+      <Name>BionicEyeXamarin</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
 </Project>

@@ -24,14 +24,16 @@ namespace BionicEyeXamarin {
 
 
         #region Connectors
-        IBingSpeechService bingSpeechService;
-        IGraphHooperConnector graphHopperService;
-        IGeolocator gpsService;
-        IBluetoothConnector bluetoothService;
+        private IBingSpeechService bingSpeechService;
+        private IGraphHooperConnector graphHopperService;
+        private IGeolocator gpsService;
+        private IBluetoothConnector bluetoothService;
+        private ITextToSpeech textToSpeechService;
         #endregion
 
         volatile bool isRecording;
         volatile bool isNavigating;
+        volatile bool isStartInstructionBeenGiven;
         volatile int currentTimeDuration;
         volatile int currentAzimuth;
         volatile bool bluetoothConnectorIsBusy;
@@ -81,13 +83,25 @@ namespace BionicEyeXamarin {
         public MainPage() {
             isRecording = false;
             isNavigating = false;
+            isStartInstructionBeenGiven = false;
             currentTimeDuration = NAVIGATION_MAX_SAMPLING_MILLIS;
             InitializeComponent();
             CreateView();
+            InitTextToSpeechService();
             InitSpeechService();
             InitGraphHopper();
             InitGPS();
             InitBluetooth();
+        }
+
+        private void InitTextToSpeechService() {
+            try {
+                textToSpeechService = DependencyService.Get<ITextToSpeech>();
+            } catch (Exception ex) {
+                Device.BeginInvokeOnMainThread(async () => {
+                    await DisplayAlert("Cannot initialize text to speech service", ex.Message, "OK");
+                });
+            }
         }
 
         private void InitBluetooth() {
@@ -100,6 +114,7 @@ namespace BionicEyeXamarin {
                 return; //we dont wont to try to connect twice, or if we are already connected
             Task.Run(async () => {
                 bluetoothConnectorIsBusy = true;
+                textToSpeechService.Speak("Connecting to belt, please wait");
                 StartActivityIndicator(Color.DeepSkyBlue);
                 string status;
                 if (await bluetoothService.ConnectAsync()) {//As soon as we are connected we need to pull from the values
@@ -109,9 +124,9 @@ namespace BionicEyeXamarin {
                 } else {
                     status = "Failed to connect via bluetooth";
                     bluetoothConnectorIsBusy = false;
-                    AlertOnUi("Could not reach belt via bluetooth", status, "OK");
                 }
                 StopActivityIndicator();
+                textToSpeechService.Speak(status);
             });
 
         }
@@ -216,9 +231,9 @@ namespace BionicEyeXamarin {
 
         private async void RecordButton_Clicked(object sender, EventArgs e) {
             speechLabel.Text = "";
-
-            /*
-            ConnectToBluetooth(); // let's try to connect lazly and let the user decide what to do
+            /*  --- this is a bit annoying so this is commented out for now ----
+             *  
+            ConnectToBluetooth();
             if (!bluetoothService.IsConnected) { //if it is still not connected, let the user decide if he wants to ignore it.
                 bool continueNavigating = await DisplayAlert("Bluetooth Error",
                     "There is no connection to the belt, do you still want to navigate?",
@@ -291,7 +306,7 @@ namespace BionicEyeXamarin {
 
                     await NavigateToAsync(location);
                 } else {
-                    await TextToSpeech.SpeakAsync($"{speechResult.RecognitionStatus}");
+                    textToSpeechService.Speak($"{speechResult.RecognitionStatus}");
                     await DisplayAlert("Sorry failed to recognize", $"{speechResult.RecognitionStatus}", "OK, I will try again");
                 }
             }
@@ -301,7 +316,7 @@ namespace BionicEyeXamarin {
             try {
                 Coordinate dest = await graphHopperService.getCoordiantesAsync(location);
                 string question = $"Would you like to navigate to {location}?";
-                await TextToSpeech.SpeakAsync(question);
+                textToSpeechService.Speak(question);
                 bool shouldNavigate = await DisplayAlert(question, "", "Yes", "No");
 
                 await Task.Run(async () => {
@@ -387,6 +402,10 @@ namespace BionicEyeXamarin {
             try {
                 var routeResponse = await graphHopperService.getRouthAsync(src, dest, GetAzimuth());
                 StopActivityIndicator();
+                if (!isStartInstructionBeenGiven) {
+                    StartRouteSpeech(routeResponse);
+                    isStartInstructionBeenGiven = true;
+                }
                 UpdateCurrentTimeDuration(routeResponse);
                 if (DestenationReached(routeResponse)) {
                     isNavigating = false;
@@ -400,6 +419,14 @@ namespace BionicEyeXamarin {
                 AlertOnUi("Cloud not navigate!", ex.StackTrace, "OK, I will report this");
             }
             return false;
+        }
+        private void StartRouteSpeech(RouteResponse routeResponse) {
+            textToSpeechService.Speak("We're ready, let's go!");
+            string description = ExtractFullDescriptionFromRoute(routeResponse);
+            if (!string.IsNullOrEmpty(description)) {
+                
+                textToSpeechService.Speak(description);
+            }
         }
 
         private void UpdateCurrentTimeDuration(RouteResponse routeResponse) {
@@ -465,11 +492,7 @@ namespace BionicEyeXamarin {
                 if (routeResponse.Paths.Count > 0) {
                     int? nextTurn = routeResponse.Paths[0].Instructions[0].Sign;
                     ChangeLabelVisiabilityOnUI(directionLabel, true);
-                    string description = routeResponse.Paths[0].Instructions[0].Text;
-                    description += $"for : {routeResponse.Paths[0].Instructions[0].Time / 1000}[sec]";
-                    if (routeResponse.Paths[0].Instructions.Count > 1)
-                        description += $",\nand then {routeResponse.Paths[0].Instructions[1].Text}";
-
+                    ChangeLabelTextOnUI(directionLabel, ExtractFullDescriptionFromRoute(routeResponse));
 #if DEBUG
                     foreach (var instuction in routeResponse?.Paths[0].Instructions) {
                         Debug.WriteLine($"time:{ instuction.Time} , next step:{instuction.Text}),sign:{instuction.Sign}\n");
@@ -479,6 +502,14 @@ namespace BionicEyeXamarin {
 
             }
 
+        }
+
+        private static string ExtractFullDescriptionFromRoute(RouteResponse routeResponse) {
+            string description = routeResponse.Paths[0].Instructions[0].Text;
+            description += $" for : {routeResponse.Paths[0].Instructions[0].Time / 1000}[sec]";
+            if (routeResponse.Paths[0].Instructions.Count > 1)
+                description += $",\nand then {routeResponse.Paths[0].Instructions[1].Text}";
+            return description;
         }
 
         /// <summary>

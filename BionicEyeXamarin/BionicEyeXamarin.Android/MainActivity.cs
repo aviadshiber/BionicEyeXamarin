@@ -11,19 +11,14 @@ using System.Threading.Tasks;
 using Android;
 using Plugin.CurrentActivity;
 
-namespace BionicEyeXamarin.Droid
-{
+namespace BionicEyeXamarin.Droid {
     [Activity(Label = "BionicEyeXamarin", Theme = "@style/MainTheme", MainLauncher = true, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation)]
-    public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity
-    {
-        const int RequestLocationId = 0;
-        readonly string[] PermissionsLocation =
-           {
-                Manifest.Permission.AccessCoarseLocation,
-                Manifest.Permission.AccessFineLocation
-            };
-        protected override void OnCreate(Bundle savedInstanceState)
-        {
+    public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity {
+        public static MainActivity Instance { get; private set; }
+        public MainActivity() {
+            Instance = this;
+        }
+        protected override void OnCreate(Bundle savedInstanceState) {
             TabLayoutResource = Resource.Layout.Tabbar;
             ToolbarResource = Resource.Layout.Toolbar;
 
