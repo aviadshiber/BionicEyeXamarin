@@ -35,5 +35,13 @@ namespace BionicEyeXamarin.Droid.Services {
                 Task.Run(() => { speaker.Speak(toSpeak, QueueMode.Flush, null, null); });
             }
         }
+        public async Task SpeakAsync(string text) {
+            toSpeak = text;
+            if (speaker == null) {
+                speaker = new TextToSpeech(MainActivity.Instance, this);
+            } else {
+                await Task.Run(() => { speaker.Speak(toSpeak, QueueMode.Flush, null, null); });
+            }
+        }
     }
 }

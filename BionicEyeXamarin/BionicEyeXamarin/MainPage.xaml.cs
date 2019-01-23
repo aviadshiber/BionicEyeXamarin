@@ -23,6 +23,7 @@ namespace BionicEyeXamarin {
         private static readonly int MAX_DISTANCE_TO_WARN_METERS = 3;
         private const int AUDIO_STOP_RECORDING_AFTER_MILLIS = 4000;
         private const int AZUMITH_RATE_MILLIS = 500;
+        private const string START_INSTRUCTION = "9";
         private static readonly int NAVIGATION_MAX_SAMPLING_MILLIS = 10000;
         private static readonly string IMAGES_PATH = "BionicEyeXamarin.Images";
 
@@ -52,14 +53,14 @@ namespace BionicEyeXamarin {
             HorizontalOptions = LayoutOptions.Center,
             BackgroundColor = Color.DimGray,
             CornerRadius = 80,
-            Scale = 2.2,
+            Scale = 1.5,
             Margin = 12
         };
         Label speechLabel = new Label {
             Text = "",
             FontSize = 25,
             TextColor = Color.Black,
-            Margin = 30,
+            Margin = 20,
             FontAttributes = FontAttributes.Bold,
             BackgroundColor = Color.WhiteSmoke,
             Opacity = 0.5
@@ -121,14 +122,17 @@ namespace BionicEyeXamarin {
                 string status;
                 if (await bluetoothService.ConnectAsync()) {//As soon as we are connected we need to pull from the values
                     status = "Bionic Eye is now connected to belt";
+                    StopActivityIndicator();
+                    textToSpeechService.Speak(status);
                     await ListenToArduinoAsync();
                     bluetoothConnectorIsBusy = false; //should get here only if listen thread is finished, and so the bluetooth connector is no longer busy
                 } else {
                     status = "Failed to connect via bluetooth";
+                    StopActivityIndicator();
                     bluetoothConnectorIsBusy = false;
+                    textToSpeechService.Speak(status);
                 }
-                StopActivityIndicator();
-                textToSpeechService.Speak(status);
+               
             });
         }
 
@@ -403,7 +407,10 @@ namespace BionicEyeXamarin {
                 var routeResponse = await graphHopperService.getRouthAsync(src, dest, GetAzimuth());
                 StopActivityIndicator();
                 if (!isStartInstructionBeenGiven) {
-                    StartRouteSpeech(routeResponse);
+                    await StartRouteSpeech(routeResponse);
+                    if (bluetoothService.IsConnected) {
+                        await bluetoothService.SendAsync(START_INSTRUCTION);
+                    }
                     isStartInstructionBeenGiven = true;
                 }
                 UpdateCurrentTimeDuration(routeResponse);
@@ -419,11 +426,11 @@ namespace BionicEyeXamarin {
             }
             return false;
         }
-        private void StartRouteSpeech(RouteResponse routeResponse) {
-            textToSpeechService.Speak("We're ready, let's go!");
+        private async Task StartRouteSpeech(RouteResponse routeResponse) {
+            await textToSpeechService.SpeakAsync("We're ready, let's go!");
+            await Task.Delay(2000);
             string description = ExtractFullDescriptionFromRoute(routeResponse);
             if (!string.IsNullOrEmpty(description)) {
-                
                 textToSpeechService.Speak(description);
             }
         }
