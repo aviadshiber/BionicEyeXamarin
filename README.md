@@ -13,6 +13,9 @@ https://bit.ly/2MtCd9C
 
 ## Installation
 
+## upload the following Arduino Programs- one for the shoe component and one for the belt:
+https://github.com/aviadshiber/BionicEyeArduino
+
 ### The current project uses the following projects:
 add them to parent folder(../) of that project
 * [GraphHopperConnector](https://github.com/aviadshiber/GraphHooperExample/tree/master/GraphHooperConnector) - for the navigation
