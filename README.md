@@ -16,9 +16,8 @@ https://bit.ly/2MtCd9C
 ### Arduino
 This project uses arduino belt component to get the azimuth- for the navigation.
 The shoe component is for detecting obstacles and staris (totally independent from this project).
-Bionic eye arduino project can be found:
-https://github.com/aviadshiber/BionicEyeArduino
-Burn (upload) each program to your arduino(nano).
+Burn (upload) each program to your arduino(nano) from:
+* [BionicEye Arduino Project](https://github.com/aviadshiber/BionicEyeArduino)
 
 ### The current project uses the following projects:
 add them to parent folder(../) of that project
