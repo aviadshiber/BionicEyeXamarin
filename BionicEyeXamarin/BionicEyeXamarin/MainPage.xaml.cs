@@ -24,6 +24,7 @@ namespace BionicEyeXamarin {
         private const int AUDIO_STOP_RECORDING_AFTER_MILLIS = 4000;
         private const int AZUMITH_RATE_MILLIS = 500;
         private const string START_INSTRUCTION = "9";
+        private const int GPS_ACCURECY = 16;
         private static readonly int NAVIGATION_MAX_SAMPLING_MILLIS = 10000;
         private static readonly string IMAGES_PATH = "BionicEyeXamarin.Images";
 
@@ -138,6 +139,7 @@ namespace BionicEyeXamarin {
 
         private void InitGPS() {
             gpsService = CrossGeolocator.Current;
+            gpsService.DesiredAccuracy = GPS_ACCURECY;
         }
 
         private void InitGraphHopper() {
