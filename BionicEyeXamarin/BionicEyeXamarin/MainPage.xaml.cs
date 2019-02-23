@@ -49,12 +49,12 @@ namespace BionicEyeXamarin {
 
 
         #region Controls View
-        ImageButton recordButton = new ImageButton {
+        public static ImageButton recordButton = new ImageButton {
             Source = ImageSource.FromResource($"{IMAGES_PATH}.AudioB.png"),
             HorizontalOptions = LayoutOptions.Center,
             BackgroundColor = Color.DimGray,
             CornerRadius = 80,
-            Scale = 1.5,
+            Scale = 2.2,
             Margin = 12
         };
         Label speechLabel = new Label {
@@ -238,19 +238,6 @@ namespace BionicEyeXamarin {
 
         private async void RecordButton_Clicked(object sender, EventArgs e) {
             speechLabel.Text = "";
-            /*  --- this is a bit annoying so this is commented out for now ----
-             *  
-            ConnectToBluetooth();
-            if (!bluetoothService.IsConnected) { //if it is still not connected, let the user decide if he wants to ignore it.
-                bool continueNavigating = await DisplayAlert("Bluetooth Error",
-                    "There is no connection to the belt, do you still want to navigate?",
-                    "Yes", "No");
-                if (!continueNavigating) {
-                    StopNavigation(); //if we were already navigating we should no longer navigate
-                    return; //there is no point to navigate if the bluetooth is not connected => early return
-                }
-            }
-            */
             try {
                 HandleRecording((ImageButton)sender);
 

@@ -15,6 +15,14 @@ namespace BionicEyeXamarin.Droid {
         public MainActivity() {
             Instance = this;
         }
+        public override bool OnKeyUp([GeneratedEnum] Keycode keyCode, KeyEvent e) {
+            if (keyCode == Keycode.VolumeDown) {
+                MainPage.recordButton.PropagateUpClicked();
+                return true;
+            } 
+            return base.OnKeyUp(keyCode, e);
+
+        }
         protected override void OnCreate(Bundle savedInstanceState) {
             TabLayoutResource = Resource.Layout.Tabbar;
             ToolbarResource = Resource.Layout.Toolbar;
@@ -26,6 +34,7 @@ namespace BionicEyeXamarin.Droid {
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults) {
             PermissionsImplementation.Current.OnRequestPermissionsResult(requestCode, permissions, grantResults);
         }
+        
 
     }
 }
